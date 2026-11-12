@@ -1,0 +1,72 @@
+name: Build Android APK
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/build-android.yml'
+      - 'AionApp/**'
+  workflow_dispatch:
+    inputs:
+      cpu:
+        description: 'universal 兼容多种 CPU；arm64-v8a 安装包更小'
+        required: true
+        default: universal
+        type: choice
+        options: [universal, arm64-v8a]
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+      - name: Install Android 34 build tools
+        run: sdkmanager 'platforms;android-34' 'build-tools;34.0.0'
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+      - name: Keep personal test signing key between builds
+        uses: actions/cache@v4
+        with:
+          path: ~/.android/debug.keystore
+          key: aionshome-personal-debug-key-v1
+      - name: Download and verify local speech recognition runtime
+        working-directory: AionApp
+        run: python scripts/prepare-local-asr.py
+      - name: Build installable debug APK
+        working-directory: AionApp
+        env:
+          AION_CPU: ${{ inputs.cpu || 'universal' }}
+        run: |
+          if [ "$AION_CPU" = 'universal' ]; then
+            bash gradlew --no-daemon :app:assembleDebug
+          else
+            bash gradlew --no-daemon :app:assembleDebug -PtargetAbi="$AION_CPU"
+          fi
+      - name: Create APK checksum
+        working-directory: AionApp/app/build/outputs/apk/debug
+        run: sha256sum app-debug.apk > app-debug.apk.sha256
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: AionsHome-APK-${{ inputs.cpu || 'universal' }}
+          path: |
+            AionApp/app/build/outputs/apk/debug/app-debug.apk
+            AionApp/app/build/outputs/apk/debug/app-debug.apk.sha256
+          if-no-files-found: error
+          retention-days: 14
