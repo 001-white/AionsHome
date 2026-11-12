@@ -20,7 +20,7 @@ permissions:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 45
     steps:
       - name: Check out source
@@ -36,6 +36,9 @@ jobs:
           python-version: '3.11'
       - name: Set up Android SDK
         uses: android-actions/setup-android@v3
+        with:
+          packages: platform-tools
+          log-accepted-android-sdk-licenses: false
       - name: Install Android 34 build tools
         run: sdkmanager 'platforms;android-34' 'build-tools;34.0.0'
       - name: Set up Gradle
