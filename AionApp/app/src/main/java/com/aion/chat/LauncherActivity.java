@@ -79,9 +79,9 @@ public class LauncherActivity extends AppCompatActivity {
         Button   btnHomecoming= findViewById(R.id.btnHomecoming);
         CheckBox cbRemember   = findViewById(R.id.cbRemember);
 
-        tvHome.setText(URL_HOME);
+        tvHome.setText(prefs.getString("home_server_url", URL_HOME));
         tvCloudflare.setText(URL_CLOUDFLARE);
-        tvOutdoor.setText(URL_OUTDOOR);
+        tvOutdoor.setText(prefs.getString("outdoor_server_url", URL_OUTDOOR));
         boolean pendingReturn = false;
         try {
             pendingReturn = !new HomecomingReturnPackageRepository(this)
@@ -95,11 +95,12 @@ public class LauncherActivity extends AppCompatActivity {
             tvHomecomingHint.setText("有归巢数据等待手动回传");
         }
 
-        btnHome.setOnClickListener(v -> {
-            saveIfNeeded(prefs, cbRemember.isChecked(), URL_HOME);
-            refreshHomecomingBackup(URL_HOME, true);
-            launchWebView(URL_HOME);
-        });
+        btnHome.setOnClickListener(v -> ServerAddressDialog.show(
+                this, prefs, "home_server_url", URL_HOME, address -> {
+                    saveIfNeeded(prefs, cbRemember.isChecked(), address);
+                    refreshHomecomingBackup(address, true);
+                    launchWebView(address);
+                }));
 
         btnCloudflare.setOnClickListener(v -> {
             saveIfNeeded(prefs, cbRemember.isChecked(), URL_CLOUDFLARE);
@@ -107,11 +108,12 @@ public class LauncherActivity extends AppCompatActivity {
             launchWebView(URL_CLOUDFLARE);
         });
 
-        btnOutdoor.setOnClickListener(v -> {
-            saveIfNeeded(prefs, cbRemember.isChecked(), URL_OUTDOOR);
-            refreshHomecomingBackup(URL_OUTDOOR, true);
-            launchWebView(URL_OUTDOOR);
-        });
+        btnOutdoor.setOnClickListener(v -> ServerAddressDialog.show(
+                this, prefs, "outdoor_server_url", URL_OUTDOOR, address -> {
+                    saveIfNeeded(prefs, cbRemember.isChecked(), address);
+                    refreshHomecomingBackup(address, true);
+                    launchWebView(address);
+                }));
 
         btnHomecoming.setOnClickListener(v -> {
             Intent intent = new Intent(this, HomecomingActivity.class);
